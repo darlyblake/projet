@@ -7,8 +7,8 @@ class CourseProvider with ChangeNotifier {
   final CourseService _courseService = CourseService();
 
   List<CourseModel> _courses = [];
-  List<CourseModel> _purchasedCourses = [];
-  List<int> _favorites = [];
+  final List<CourseModel> _purchasedCourses = [];
+  final List<int> _favorites = [];
 
   bool _isLoading = false;
   String? _errorMessage;

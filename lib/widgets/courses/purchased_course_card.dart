@@ -35,7 +35,7 @@ class PurchasedCourseCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     color: Colors.grey.shade200,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.play_circle_fill,
                     color: Colors.blue,
                     size: 32,
@@ -83,7 +83,7 @@ class PurchasedCourseCard extends StatelessWidget {
                               ),
                               Text(
                                 '${(progress * 100).toInt()}%',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.blue,
@@ -95,8 +95,8 @@ class PurchasedCourseCard extends StatelessWidget {
                           LinearProgressIndicator(
                             value: progress,
                             backgroundColor: Colors.grey.shade200,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.blue),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                                Colors.blue),
                           ),
                         ],
                       ),
@@ -130,11 +130,11 @@ class PurchasedCourseCard extends StatelessWidget {
                       final newProgress = (progress + 0.1).clamp(0.0, 1.0);
                       onUpdateProgress(newProgress);
                     },
-                    child: const Text('+10%'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                     ),
+                    child: const Text('+10%'),
                   ),
               ],
             ),

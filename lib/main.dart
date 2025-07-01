@@ -5,8 +5,17 @@ import 'providers/course_provider.dart';
 import 'providers/cart_provider.dart';
 import 'screens/welcome_screen.dart';
 import 'utils/app_theme.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await dotenv.load(fileName: "assets/env.example");
+  } catch (e) {
+    debugPrint("Erreur de chargement du .env : $e");
+  }
+
   runApp(const EduStoreApp());
 }
 

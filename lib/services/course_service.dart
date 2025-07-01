@@ -3,7 +3,7 @@ import 'package:edustore/utils/app_exception.dart';
 
 class CourseService {
   // Données de démonstration
-  static List<CourseModel> _mockCourses = [
+  static final List<CourseModel> _mockCourses = [
     CourseModel(
       id: 1,
       title: "Développement Web Complet",
