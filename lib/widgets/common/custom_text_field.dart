@@ -28,43 +28,58 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTabletOrDesktop = screenWidth > 600;
+
+    final double labelFontSize = isTabletOrDesktop ? 16 : 14;
+    final double contentPadding = isTabletOrDesktop ? 20 : 12;
+    final double fieldWidth = isTabletOrDesktop ? 500 : double.infinity;
+
+    return Align(
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: fieldWidth,
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          validator: validator,
-          enabled: enabled,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint ?? label,
-            suffixIcon: suffixIcon,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: labelFontSize,
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF2563EB)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: controller,
+              obscureText: obscureText,
+              keyboardType: keyboardType,
+              validator: validator,
+              enabled: enabled,
+              maxLines: maxLines,
+              decoration: InputDecoration(
+                hintText: hint ?? label,
+                suffixIcon: suffixIcon,
+                prefixIcon: prefixIcon,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF2563EB)),
+                ),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: contentPadding,
+                  vertical: contentPadding,
+                ),
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            prefixIcon: prefixIcon,
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

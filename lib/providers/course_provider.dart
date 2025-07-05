@@ -5,6 +5,44 @@ import 'package:edustore/utils/app_exception.dart';
 
 class CourseProvider with ChangeNotifier {
   final CourseService _courseService = CourseService();
+  String _selectedCategory = 'Tous';
+  String _selectedLevel = 'Tous';
+
+  // Getters et setters pour les filtres
+  String get selectedCategory => _selectedCategory;
+  set selectedCategory(String value) {
+    _selectedCategory = value;
+    notifyListeners();
+  }
+
+  String get selectedLevel => _selectedLevel;
+  set selectedLevel(String value) {
+    _selectedLevel = value;
+    notifyListeners();
+  }
+
+  // Méthode pour filtrer les cours
+  List<CourseModel> get filteredCourses {
+    return _courses.where((course) {
+      if (_selectedCategory != 'Tous' && course.category != _selectedCategory) {
+        return false;
+      }
+      if (_selectedLevel != 'Tous') {
+        final levelText = _getLevelText(course.level);
+        if (levelText != _selectedLevel) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  }
+
+  String _getLevelText(dynamic level) {
+    if (level.toString().contains('beginner')) return 'Débutant';
+    if (level.toString().contains('intermediate')) return 'Intermédiaire';
+    if (level.toString().contains('advanced')) return 'Avancé';
+    return 'Débutant';
+  }
 
   List<CourseModel> _courses = [];
   final List<CourseModel> _purchasedCourses = [];

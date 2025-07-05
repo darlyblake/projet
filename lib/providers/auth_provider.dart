@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:edustore/models/user_model.dart';
 import 'package:edustore/services/auth_service.dart';
 
-
 class AuthProvider with ChangeNotifier {
   UserModel? _currentUser;
   bool _isLoading = false;
@@ -32,7 +31,8 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> register(String name, String email, String password, UserRole role) async {
+  Future<bool> register(
+      String name, String email, String password, UserRole role) async {
     _setLoading(true);
     _clearError();
 

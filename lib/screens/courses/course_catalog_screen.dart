@@ -11,7 +11,6 @@ import 'package:edustore/widgets/courses/course_card.dart';
 import 'package:edustore/screens/courses/search_results_screen.dart';
 import 'package:edustore/screens/courses/course_details_screen.dart';
 
-
 class CourseCatalogScreen extends StatefulWidget {
   const CourseCatalogScreen({super.key});
 
@@ -54,7 +53,7 @@ class _CourseCatalogScreenState extends State<CourseCatalogScreen> {
       ),
       body: Consumer2<CourseProvider, CartProvider>(
         builder: (context, courseProvider, cartProvider, child) {
-          final filteredCourses = _getFilteredCourses(courseProvider.courses);
+          final filteredCourses = courseProvider.filteredCourses;
 
           return Column(
             children: [
@@ -150,52 +149,54 @@ class _CourseCatalogScreenState extends State<CourseCatalogScreen> {
                 child: filteredCourses.isEmpty
                     ? _buildEmptyState()
                     : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: filteredCourses.length,
-                  itemBuilder: (context, index) {
-                    final course = filteredCourses[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: CourseCard(
-                        course: course,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CourseDetailsScreen(
+                        padding: const EdgeInsets.all(16.0),
+                        itemCount: filteredCourses.length,
+                        itemBuilder: (context, index) {
+                          final course = filteredCourses[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: CourseCard(
                               course: course,
-                            ),
-                          ),
-                        ),
-                        onAddToCart: () {
-                          cartProvider.addToCart(course);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Cours ajouté au panier !'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        },
-                        onToggleFavorite: () {
-                          courseProvider.toggleFavorite(course.id);
-                          final isFavorite = courseProvider.isFavorite(course.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                isFavorite
-                                    ? 'Ajouté aux favoris !'
-                                    : 'Retiré des favoris',
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CourseDetailsScreen(
+                                    course: course,
+                                  ),
+                                ),
                               ),
-                              backgroundColor: Colors.green,
+                              onAddToCart: () {
+                                cartProvider.addToCart(course);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Cours ajouté au panier !'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              },
+                              onToggleFavorite: () {
+                                courseProvider.toggleFavorite(course.id);
+                                final isFavorite =
+                                    courseProvider.isFavorite(course.id);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isFavorite
+                                          ? 'Ajouté aux favoris !'
+                                          : 'Retiré des favoris',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              },
+                              isInCart: cartProvider.isInCart(course.id),
+                              isFavorite: courseProvider.isFavorite(course.id),
+                              isPurchased:
+                                  courseProvider.isPurchased(course.id),
                             ),
                           );
                         },
-                        isInCart: cartProvider.isInCart(course.id),
-                        isFavorite: courseProvider.isFavorite(course.id),
-                        isPurchased: courseProvider.isPurchased(course.id),
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           );
@@ -203,32 +204,6 @@ class _CourseCatalogScreenState extends State<CourseCatalogScreen> {
       ),
       bottomNavigationBar: const BottomNavigation(currentIndex: 1),
     );
-  }
-
-  List<dynamic> _getFilteredCourses(List<dynamic> courses) {
-    return courses.where((course) {
-      // Filtre par catégorie
-      if (_selectedCategory != 'Tous' && course.category != _selectedCategory) {
-        return false;
-      }
-
-      // Filtre par niveau
-      if (_selectedLevel != 'Tous') {
-        final levelText = _getLevelText(course.level);
-        if (levelText != _selectedLevel) {
-          return false;
-        }
-      }
-
-      return true;
-    }).toList();
-  }
-
-  String _getLevelText(dynamic level) {
-    if (level.toString().contains('beginner')) return 'Débutant';
-    if (level.toString().contains('intermediate')) return 'Intermédiaire';
-    if (level.toString().contains('advanced')) return 'Avancé';
-    return 'Débutant';
   }
 
   Widget _buildEmptyState() {

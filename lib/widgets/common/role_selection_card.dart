@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'custom_button.dart';
 
 class RoleSelectionCard extends StatelessWidget {
   final IconData icon;
@@ -9,6 +8,10 @@ class RoleSelectionCard extends StatelessWidget {
   final Color buttonColor;
   final VoidCallback onPressed;
 
+  // Paramètres optionnels
+  final double? buttonHeight;
+  final double? buttonFontSize;
+
   const RoleSelectionCard({
     super.key,
     required this.icon,
@@ -17,49 +20,57 @@ class RoleSelectionCard extends StatelessWidget {
     required this.buttonText,
     required this.buttonColor,
     required this.onPressed,
+    this.buttonHeight,
+    this.buttonFontSize,
   });
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isTablet = width >= 600;
+
+    final double responsiveFontSize = isTablet ? 22.0 : 18.0;
+    final double responsiveSubFontSize = isTablet ? 16.0 : 14.0;
+    final double responsiveButtonHeight =
+        buttonHeight ?? (isTablet ? 56.0 : 48.0);
+    final double responsiveButtonFontSize =
+        buttonFontSize ?? (isTablet ? 18.0 : 16.0);
+
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      margin: const EdgeInsets.all(12),
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.all(isTablet ? 24.0 : 16.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 48,
-              color: buttonColor,
-            ),
+            Icon(icon, size: isTablet ? 64 : 48, color: buttonColor),
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 18,
+              style: TextStyle(
+                fontSize: responsiveFontSize,
                 fontWeight: FontWeight.bold,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
               textAlign: TextAlign.center,
+              style: TextStyle(fontSize: responsiveSubFontSize),
             ),
             const SizedBox(height: 16),
             SizedBox(
+              height: responsiveButtonHeight,
               width: double.infinity,
-              child: CustomButton(
-                text: buttonText,
-                backgroundColor: buttonColor,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  textStyle: TextStyle(fontSize: responsiveButtonFontSize),
+                ),
                 onPressed: onPressed,
+                child: Text(buttonText),
               ),
             ),
           ],

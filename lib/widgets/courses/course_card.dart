@@ -26,6 +26,15 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final bool isTablet = width >= 600;
+
+    final double imageHeight = isTablet ? 200 : 160;
+    final double titleFontSize = isTablet ? 18 : 16;
+    final double textFontSize = isTablet ? 14 : 12;
+    final double smallFontSize = isTablet ? 12 : 11;
+    final double padding = isTablet ? 20 : 16;
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -33,23 +42,21 @@ class CourseCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image avec bouton favori
+            // Image avec badge & favori
             Stack(
               children: [
                 CachedNetworkImage(
                   imageUrl: course.image,
-                  height: 160,
+                  height: imageHeight,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(
-                    height: 160,
+                    height: imageHeight,
                     color: Colors.grey.shade200,
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
                   errorWidget: (context, url, error) => Container(
-                    height: 160,
+                    height: imageHeight,
                     color: Colors.grey.shade200,
                     child: const Icon(Icons.image_not_supported),
                   ),
@@ -68,27 +75,23 @@ class CourseCard extends StatelessWidget {
                   right: 8,
                   child: Row(
                     children: [
-                      // Badge format
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.7),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           course.format == CourseFormat.video ? 'Vidéo' : 'PDF',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: smallFontSize,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Bouton favori
                       if (onToggleFavorite != null)
                         GestureDetector(
                           onTap: onToggleFavorite,
@@ -113,13 +116,12 @@ class CourseCard extends StatelessWidget {
               ],
             ),
 
-            // Contenu
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(padding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Rating et niveau
+                  // Rating & niveau
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -132,13 +134,13 @@ class CourseCard extends StatelessWidget {
                               color: Colors.amber,
                             ),
                             itemCount: 5,
-                            itemSize: 14.0,
+                            itemSize: 14,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             course.rating.toString(),
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: TextStyle(
+                              fontSize: smallFontSize,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -146,17 +148,15 @@ class CourseCard extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           _getLevelText(course.level),
-                          style: const TextStyle(
-                            fontSize: 10,
+                          style: TextStyle(
+                            fontSize: smallFontSize,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -169,8 +169,8 @@ class CourseCard extends StatelessWidget {
                   // Titre
                   Text(
                     course.title,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
                     ),
                     maxLines: 2,
@@ -183,7 +183,7 @@ class CourseCard extends StatelessWidget {
                   Text(
                     course.description,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: textFontSize,
                       color: Colors.grey.shade600,
                     ),
                     maxLines: 2,
@@ -192,14 +192,14 @@ class CourseCard extends StatelessWidget {
 
                   const SizedBox(height: 8),
 
-                  // Professeur et durée
+                  // Professeur + durée
                   Row(
                     children: [
                       Expanded(
                         child: Text(
                           'Par ${course.teacher}',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: smallFontSize,
                             color: Colors.grey.shade500,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -207,16 +207,13 @@ class CourseCard extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 12,
-                            color: Colors.grey.shade500,
-                          ),
+                          Icon(Icons.access_time,
+                              size: 12, color: Colors.grey.shade500),
                           const SizedBox(width: 2),
                           Text(
                             course.duration,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: smallFontSize,
                               color: Colors.grey.shade500,
                             ),
                           ),
@@ -227,45 +224,37 @@ class CourseCard extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  // Boutons d'action
+                  // Étudiants & actions
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Nombre d'étudiants
                       Row(
                         children: [
-                          Icon(
-                            Icons.people,
-                            size: 14,
-                            color: Colors.grey.shade500,
-                          ),
+                          Icon(Icons.people,
+                              size: 14, color: Colors.grey.shade500),
                           const SizedBox(width: 4),
                           Text(
                             '${course.students} étudiants',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: smallFontSize,
                               color: Colors.grey.shade500,
                             ),
                           ),
                         ],
                       ),
-
-                      // Boutons d'action selon le type de cours
                       if (isPurchased)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.green.shade50,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Colors.green.shade200),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Acheté',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: textFontSize,
                               color: Colors.green,
                               fontWeight: FontWeight.w500,
                             ),
@@ -274,21 +263,14 @@ class CourseCard extends StatelessWidget {
                       else if (course.isFree)
                         ElevatedButton.icon(
                           onPressed: onTap,
-                          icon: const Icon(
-                            Icons.play_arrow,
-                            size: 16,
-                          ),
-                          label: const Text(
-                            'Commencer',
-                            style: TextStyle(fontSize: 12),
-                          ),
+                          icon: const Icon(Icons.play_arrow, size: 16),
+                          label: Text('Commencer',
+                              style: TextStyle(fontSize: textFontSize)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
+                                horizontal: 12, vertical: 6),
                             minimumSize: Size.zero,
                           ),
                         )
@@ -301,13 +283,11 @@ class CourseCard extends StatelessWidget {
                           ),
                           label: Text(
                             isInCart ? 'Ajouté' : 'Panier',
-                            style: const TextStyle(fontSize: 12),
+                            style: TextStyle(fontSize: textFontSize),
                           ),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
+                                horizontal: 12, vertical: 6),
                             minimumSize: Size.zero,
                           ),
                         ),

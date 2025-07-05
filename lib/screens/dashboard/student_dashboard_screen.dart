@@ -33,6 +33,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth > 600;
+
     return Scaffold(
       appBar: AppBar(
         title: Consumer<AuthProvider>(
@@ -49,7 +52,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   IconButton(
                     icon: const Icon(Icons.shopping_cart),
                     onPressed: () {
-                      // Navigate to cart
+                      // Naviguer vers le panier
                     },
                   ),
                   if (cartProvider.itemCount > 0)
@@ -90,22 +93,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           final favorites = courseProvider.favorites;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(isWide ? 24.0 : 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Statistiques
-                const Text(
+                Text(
                   'Mes statistiques',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: isWide ? 22 : 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
                   children: [
-                    Expanded(
+                    SizedBox(
+                      width: isWide ? (screenWidth - 64) / 3 : double.infinity,
                       child: StatsCard(
                         title: 'Cours achetés',
                         value: purchasedCourses.length.toString(),
@@ -113,8 +118,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         color: Colors.blue,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
+                    SizedBox(
+                      width: isWide ? (screenWidth - 64) / 3 : double.infinity,
                       child: StatsCard(
                         title: 'Terminés',
                         value: completedCourses.toString(),
@@ -122,8 +127,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         color: Colors.green,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
+                    SizedBox(
+                      width: isWide ? (screenWidth - 64) / 3 : double.infinity,
                       child: StatsCard(
                         title: 'Favoris',
                         value: favorites.length.toString(),
@@ -133,10 +138,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 24),
-
-                // Barre de recherche
                 CustomTextField(
                   controller: _searchController,
                   label: 'Rechercher un cours...',
@@ -156,10 +158,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
-                // Actions rapides
                 QuickActionsCard(
                   actions: [
                     QuickAction(
@@ -189,28 +188,27 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             'Finaliser mes achats (${cartProvider.itemCount})',
                         icon: Icons.shopping_cart,
                         onTap: () {
-                          // Navigate to payment
+                          // Naviguer vers le paiement
                         },
                       ),
                   ],
                 ),
-
                 const SizedBox(height: 24),
-
-                // Continuer l'apprentissage
                 if (purchasedCourses.isNotEmpty) ...[
-                  const Text(
+                  Text(
                     'Continuer l\'apprentissage',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: isWide ? 22 : 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ...purchasedCourses.take(3).map((course) => Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: CourseProgressCard(course: course),
-                      )),
+                  ...purchasedCourses.take(3).map(
+                        (course) => Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: CourseProgressCard(course: course),
+                        ),
+                      ),
                 ],
               ],
             ),

@@ -14,11 +14,22 @@ class CourseProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
+    final double imageSize = isTablet ? 80 : 60;
+    final double titleFontSize = isTablet ? 16 : 14;
+    final double subtitleFontSize = isTablet ? 14 : 12;
+    final double iconSize = isTablet ? 36 : 32;
+    final double lineHeight = isTablet ? 8 : 6;
+    final double cardPadding = isTablet ? 24 : 16;
+    final double labelFontSize = isTablet ? 13 : 12;
+
     return Card(
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(cardPadding),
           child: Column(
             children: [
               Row(
@@ -28,13 +39,13 @@ class CourseProgressCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
                       course.image,
-                      width: 60,
-                      height: 60,
+                      width: imageSize,
+                      height: imageSize,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          width: 60,
-                          height: 60,
+                          width: imageSize,
+                          height: imageSize,
                           color: Colors.grey.shade200,
                           child: const Icon(Icons.image_not_supported),
                         );
@@ -51,9 +62,9 @@ class CourseProgressCard extends StatelessWidget {
                       children: [
                         Text(
                           course.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: titleFontSize,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -62,7 +73,7 @@ class CourseProgressCard extends StatelessWidget {
                         Text(
                           'Par ${course.teacher}',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: subtitleFontSize,
                             color: Colors.grey.shade600,
                           ),
                         ),
@@ -78,7 +89,7 @@ class CourseProgressCard extends StatelessWidget {
                           ? Icons.play_circle_filled
                           : Icons.picture_as_pdf,
                       color: Colors.blue,
-                      size: 32,
+                      size: iconSize,
                     ),
                   ),
                 ],
@@ -92,17 +103,17 @@ class CourseProgressCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Progression',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: labelFontSize,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       Text(
                         '${course.progress.toInt()}%',
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: TextStyle(
+                          fontSize: labelFontSize,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -110,8 +121,9 @@ class CourseProgressCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   LinearPercentIndicator(
-                    width: MediaQuery.of(context).size.width - 64,
-                    lineHeight: 6.0,
+                    width: screenWidth -
+                        (cardPadding * 2 + 32), // padding + iconButton
+                    lineHeight: lineHeight,
                     percent: course.progress / 100,
                     backgroundColor: Colors.grey.shade200,
                     progressColor: Colors.blue,

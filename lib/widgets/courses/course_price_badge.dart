@@ -16,21 +16,36 @@ class CoursePriceBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFree = price == 0;
 
+    final width = MediaQuery.of(context).size.width;
+    final bool isTablet = width > 600;
+
+    final double fontSize =
+        isSmall ? (isTablet ? 11 : 10) : (isTablet ? 14 : 12);
+
+    final double horizontalPadding =
+        isSmall ? (isTablet ? 10 : 8) : (isTablet ? 14 : 12);
+
+    final double verticalPadding =
+        isSmall ? (isTablet ? 5 : 4) : (isTablet ? 8 : 6);
+
+    final double borderRadius =
+        isSmall ? (isTablet ? 14 : 12) : (isTablet ? 18 : 16);
+
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isSmall ? 8 : 12,
-        vertical: isSmall ? 4 : 6,
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
       ),
       decoration: BoxDecoration(
         color: isFree ? Colors.green : Theme.of(context).primaryColor,
-        borderRadius: BorderRadius.circular(isSmall ? 12 : 16),
+        borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Text(
         isFree ? 'GRATUIT' : '${price.toInt()} $currency',
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
-          fontSize: isSmall ? 10 : 12,
+          fontSize: fontSize,
         ),
       ),
     );

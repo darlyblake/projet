@@ -7,89 +7,142 @@ import 'package:edustore/widgets/common/bottom_navigation.dart';
 import 'package:edustore/widgets/dashboard/stats_card.dart';
 import 'package:edustore/widgets/analytics/revenue_chart_card.dart';
 import 'package:edustore/widgets/analytics/course_performance_card.dart';
-
+import 'package:edustore/providers/teacher_analytics_provider.dart';
 
 class TeacherAnalyticsScreen extends StatelessWidget {
   const TeacherAnalyticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Revenus & Statistiques'),
+    return ChangeNotifierProvider(
+      create: (_) => TeacherAnalyticsProvider(
+        authProvider: Provider.of<AuthProvider>(context, listen: false),
+        courseProvider: Provider.of<CourseProvider>(context, listen: false),
       ),
-      body: Consumer2<AuthProvider, CourseProvider>(
-        builder: (context, authProvider, courseProvider, child) {
-          final teacherCourses = courseProvider.getCoursesByTeacher(
-            authProvider.currentUser?.id ?? 0,
-          );
+      child: const _TeacherAnalyticsView(),
+    );
+  }
+}
 
-          final totalRevenue = teacherCourses.fold<double>(
-            0.0,
-                (sum, course) => sum + course.revenue,
-          );
+class _TeacherAnalyticsView extends StatelessWidget {
+  const _TeacherAnalyticsView();
 
-          final totalStudents = teacherCourses.fold<int>(
-            0,
-                (sum, course) => sum + course.students,
-          );
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<TeacherAnalyticsProvider>();
+    final service = provider.service;
 
-          final averageRating = teacherCourses.isNotEmpty
-              ? teacherCourses.fold<double>(0.0, (sum, course) => sum + course.rating) /
-              teacherCourses.length
-              : 0.0;
+    if (service == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Revenus & Statistiques')),
+        body: const Center(child: Text('Utilisateur non connecté')),
+      );
+    }
+
+    // Responsive : on adapte la grille selon la largeur
+    return Scaffold(
+      appBar: AppBar(title: const Text('Revenus & Statistiques')),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 600;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Statistiques principales
-                Row(
-                  children: [
-                    Expanded(
-                      child: StatsCard(
-                        title: 'XAF Total',
-                        value: '${(totalRevenue / 1000000).toStringAsFixed(1)}M',
-                        icon: Icons.attach_money,
-                        color: Colors.green,
+                // Grille des stats principales
+                isWide
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: StatsCard(
+                              title: 'XAF Total',
+                              value:
+                                  '${(service.totalRevenue / 1000000).toStringAsFixed(1)}M',
+                              icon: Icons.attach_money,
+                              color: Colors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: StatsCard(
+                              title: 'Étudiants',
+                              value: service.totalStudents.toString(),
+                              icon: Icons.people,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: StatsCard(
+                              title: 'Cours créés',
+                              value: service.totalCourses.toString(),
+                              icon: Icons.book,
+                              color: Colors.purple,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: StatsCard(
+                              title: 'Note moyenne',
+                              value: service.averageRating.toStringAsFixed(1),
+                              icon: Icons.star,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: StatsCard(
+                                  title: 'XAF Total',
+                                  value:
+                                      '${(service.totalRevenue / 1000000).toStringAsFixed(1)}M',
+                                  icon: Icons.attach_money,
+                                  color: Colors.green,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: StatsCard(
+                                  title: 'Étudiants',
+                                  value: service.totalStudents.toString(),
+                                  icon: Icons.people,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: StatsCard(
+                                  title: 'Cours créés',
+                                  value: service.totalCourses.toString(),
+                                  icon: Icons.book,
+                                  color: Colors.purple,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: StatsCard(
+                                  title: 'Note moyenne',
+                                  value:
+                                      service.averageRating.toStringAsFixed(1),
+                                  icon: Icons.star,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: StatsCard(
-                        title: 'Étudiants',
-                        value: totalStudents.toString(),
-                        icon: Icons.people,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: StatsCard(
-                        title: 'Cours créés',
-                        value: teacherCourses.length.toString(),
-                        icon: Icons.book,
-                        color: Colors.purple,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: StatsCard(
-                        title: 'Note moyenne',
-                        value: averageRating.toStringAsFixed(1),
-                        icon: Icons.star,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ],
-                ),
 
                 const SizedBox(height: 24),
 
@@ -99,7 +152,7 @@ class TeacherAnalyticsScreen extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 // Performance des cours
-                CoursePerformanceCard(courses: teacherCourses),
+                CoursePerformanceCard(courses: service.teacherCourses),
 
                 const SizedBox(height: 24),
 
@@ -118,10 +171,12 @@ class TeacherAnalyticsScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _buildMonthlyItem('Décembre 2024', '3.8M XAF', '+12% vs Nov'),
-                        _buildMonthlyItem('Novembre 2024', '4.2M XAF', '+31% vs Oct'),
-                        _buildMonthlyItem('Octobre 2024', '3.2M XAF', '+8% vs Sep'),
-                        _buildMonthlyItem('Septembre 2024', '2.9M XAF', '+15% vs Août'),
+                        ...service.monthlyEvolution
+                            .map((entry) => _buildMonthlyItem(
+                                  entry['month']!,
+                                  entry['revenue']!,
+                                  entry['growth']!,
+                                )),
                       ],
                     ),
                   ),
