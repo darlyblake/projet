@@ -28,7 +28,7 @@ class TeacherDashboardScreen extends StatelessWidget {
       body: Consumer2<AuthProvider, CourseProvider>(
         builder: (context, authProvider, courseProvider, child) {
           final teacherCourses = courseProvider.getCoursesByTeacher(
-            authProvider.currentUser?.id ?? 0,
+            authProvider.currentUser?.id ?? '',
           );
 
           final totalRevenue = teacherCourses.fold<double>(

@@ -1,14 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
 import 'package:edustore/models/course_model.dart';
 import 'package:edustore/services/course_service.dart';
 import 'package:edustore/utils/app_exception.dart';
 
 class CourseProvider with ChangeNotifier {
   final CourseService _courseService = CourseService();
+
   String _selectedCategory = 'Tous';
   String _selectedLevel = 'Tous';
 
-  // Getters et setters pour les filtres
   String get selectedCategory => _selectedCategory;
   set selectedCategory(String value) {
     _selectedCategory = value;
@@ -21,32 +23,9 @@ class CourseProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Méthode pour filtrer les cours
-  List<CourseModel> get filteredCourses {
-    return _courses.where((course) {
-      if (_selectedCategory != 'Tous' && course.category != _selectedCategory) {
-        return false;
-      }
-      if (_selectedLevel != 'Tous') {
-        final levelText = _getLevelText(course.level);
-        if (levelText != _selectedLevel) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
-  }
-
-  String _getLevelText(dynamic level) {
-    if (level.toString().contains('beginner')) return 'Débutant';
-    if (level.toString().contains('intermediate')) return 'Intermédiaire';
-    if (level.toString().contains('advanced')) return 'Avancé';
-    return 'Débutant';
-  }
-
   List<CourseModel> _courses = [];
   final List<CourseModel> _purchasedCourses = [];
-  final List<int> _favorites = [];
+  final List<String> _favorites = []; // <-- ici String au lieu de int
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -56,7 +35,7 @@ class CourseProvider with ChangeNotifier {
 
   List<CourseModel> get courses => _courses;
   List<CourseModel> get purchasedCourses => _purchasedCourses;
-  List<int> get favorites => _favorites;
+  List<String> get favorites => _favorites; // <-- String
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -76,10 +55,28 @@ class CourseProvider with ChangeNotifier {
     _setLoading(false);
   }
 
-  /// Tri les cours par clé : 'title', 'price', 'date'
+  List<CourseModel> get filteredCourses {
+    return _courses.where((course) {
+      if (_selectedCategory != 'Tous' && course.category != _selectedCategory) {
+        return false;
+      }
+      if (_selectedLevel != 'Tous') {
+        final levelText = _getLevelText(course.level);
+        if (levelText != _selectedLevel) return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  String _getLevelText(dynamic level) {
+    if (level.toString().contains('beginner')) return 'Débutant';
+    if (level.toString().contains('intermediate')) return 'Intermédiaire';
+    if (level.toString().contains('advanced')) return 'Avancé';
+    return 'Débutant';
+  }
+
   void sortCourses(String key, {bool ascending = true}) {
     Comparator<CourseModel> comparator;
-
     switch (key) {
       case 'title':
         comparator = (a, b) => a.title.compareTo(b.title);
@@ -93,19 +90,20 @@ class CourseProvider with ChangeNotifier {
       default:
         return;
     }
-
     _courses.sort(ascending ? comparator : (a, b) => comparator(b, a));
     notifyListeners();
   }
 
-  /// Simule un chargement par page (pagination)
   Future<void> loadMoreCourses() async {
     _setLoading(true);
     try {
       final moreCourses =
           await _courseService.getCoursesByPage(_currentPage + 1, _pageSize);
-      _courses.addAll(moreCourses);
-      _currentPage++;
+      if (moreCourses.isNotEmpty) {
+        _courses.addAll(moreCourses);
+        _currentPage++;
+        notifyListeners();
+      }
     } catch (e) {
       _setError(_handleException(e));
     }
@@ -114,7 +112,6 @@ class CourseProvider with ChangeNotifier {
 
   List<CourseModel> searchCourses(String query) {
     if (query.isEmpty) return _courses;
-
     return _courses
         .where((course) =>
             course.title.toLowerCase().contains(query.toLowerCase()) ||
@@ -123,14 +120,24 @@ class CourseProvider with ChangeNotifier {
         .toList();
   }
 
-  List<CourseModel> getCoursesByTeacher(int teacherId) {
+  List<CourseModel> getCoursesByTeacher(String teacherId) {
     return _courses.where((course) => course.teacherId == teacherId).toList();
   }
 
-  Future<bool> createCourse(CourseModel course) async {
+  // IMPORTANT : ajout du paramètre optionnel File? file pour upload
+  Future<bool> createCourse(
+    CourseModel course, {
+    File? file,
+    Uint8List? fileBytes,
+  }) async {
     _setLoading(true);
+    _clearError();
     try {
-      final newCourse = await _courseService.createCourse(course);
+      final newCourse = await _courseService.createCourse(
+        course,
+        file: file,
+        fileBytes: fileBytes,
+      );
       _courses.add(newCourse);
       notifyListeners();
       return true;
@@ -160,7 +167,8 @@ class CourseProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> deleteCourse(int courseId) async {
+  Future<bool> deleteCourse(String courseId) async {
+    // String ici
     try {
       await _courseService.deleteCourse(courseId);
       _courses.removeWhere((course) => course.id == courseId);
@@ -172,7 +180,8 @@ class CourseProvider with ChangeNotifier {
     }
   }
 
-  void toggleFavorite(int courseId) {
+  void toggleFavorite(String courseId) {
+    // String ici
     if (_favorites.contains(courseId)) {
       _favorites.remove(courseId);
     } else {
@@ -181,19 +190,20 @@ class CourseProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  bool isFavorite(int courseId) => _favorites.contains(courseId);
+  bool isFavorite(String courseId) => _favorites.contains(courseId); // String
 
-  void purchaseCourse(int courseId) {
+  void purchaseCourse(String courseId) {
+    // String ici
     final course = _courses.firstWhere((c) => c.id == courseId,
         orElse: () => throw Exception('Course not found'));
     _purchasedCourses.add(course);
     notifyListeners();
   }
 
-  bool isPurchased(int courseId) =>
-      _purchasedCourses.any((course) => course.id == courseId);
+  bool isPurchased(String courseId) =>
+      _purchasedCourses.any((course) => course.id == courseId); // String
 
-  void updateProgress(int courseId, double progress) {
+  void updateProgress(String courseId, double progress) {
     final courseIndex = _purchasedCourses.indexWhere((c) => c.id == courseId);
     if (courseIndex != -1) {
       _purchasedCourses[courseIndex].progress = progress;
@@ -215,7 +225,6 @@ class CourseProvider with ChangeNotifier {
     _errorMessage = null;
   }
 
-  /// Gestion centralisée des erreurs avec AppException
   String _handleException(dynamic e) {
     if (e is AppException) return e.message;
     return 'Une erreur est survenue.';

@@ -10,10 +10,19 @@ import 'screens/welcome_screen.dart';
 import 'utils/app_theme.dart';
 import 'firebase_options.dart'; // Généré par flutterfire configure
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_web_plugins/flutter_web_plugins.dart'; // Pour setUrlStrategy
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // ✅ Configuration de l’URL (web uniquement)
+  if (kIsWeb) {
+    setUrlStrategy(
+        PathUrlStrategy()); // ⚠️ Doit être appelé ici, une seule fois
+  }
+
+  // Chargement des variables d’environnement
   await dotenv.load(fileName: "assets/env.example");
 
   try {
@@ -49,7 +58,6 @@ class EduStoreApp extends StatelessWidget {
   }
 }
 
-// Widget qui affiche un SnackBar après init
 class FirebaseCheckWrapper extends StatefulWidget {
   const FirebaseCheckWrapper({super.key});
 
@@ -61,7 +69,9 @@ class _FirebaseCheckWrapperState extends State<FirebaseCheckWrapper> {
   @override
   void initState() {
     super.initState();
-    // Affiche un message SnackBar après 1 frame
+
+    // 🔥 On ne met plus initGoogleSignInButton ici — il est dans main
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

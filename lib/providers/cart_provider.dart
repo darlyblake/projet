@@ -39,7 +39,7 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  bool isInCart(int courseId) {
+  bool isInCart(String courseId) {
     return _items.any((item) => item.course.id == courseId);
   }
 }

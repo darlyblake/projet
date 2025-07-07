@@ -1,57 +1,42 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:edustore/models/user_model.dart';
 
 class AuthService {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Instance partagée
 
-  /// Convertit les données Firestore + Firebase User en un objet UserModel
-  Future<UserModel> _userFromDocAndFirebaseUser(
-    User user,
-    DocumentSnapshot<Map<String, dynamic>> doc,
-  ) async {
-    final data = doc.data();
-    if (data == null) {
-      throw Exception('Données Firestore vides');
-    }
+  /// 🔹 Récupère l'utilisateur actuellement connecté
+  Future<UserModel?> getCurrentUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
 
-    final roleStr = data['role'] as String? ?? 'student';
-    final role = roleStr == 'teacher' ? UserRole.teacher : UserRole.student;
-
-    return UserModel(
-      id: data['id'] ?? user.uid.hashCode,
-      name: user.displayName ?? data['name'] ?? 'Utilisateur Firebase',
-      email: user.email ?? data['email'] ?? '',
-      role: role,
-      avatar: data['avatar'],
-      joinDate: data['joinDate'] != null
-          ? DateTime.tryParse(data['joinDate']) ?? DateTime.now()
-          : user.metadata.creationTime ?? DateTime.now(),
-    );
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    return doc.exists ? UserModel.fromFirestore(doc) : null;
   }
 
-  /// Connexion de l'utilisateur
-  Future<UserModel> login(String email, String password, UserRole role) async {
+  /// 🔹 Connexion classique email + mot de passe
+  Future<UserModel> login(String email, String password) async {
     try {
-      final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+      final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      final user = userCredential.user;
-      if (user == null) throw Exception('Utilisateur non trouvé');
+      final doc =
+          await _firestore.collection('users').doc(credential.user!.uid).get();
+      if (!doc.exists) throw Exception('Profil utilisateur non trouvé');
 
-      final doc = await _firestore.collection('users').doc(user.uid).get();
-      if (!doc.exists) throw Exception('Données utilisateur non trouvées');
-
-      return _userFromDocAndFirebaseUser(user, doc);
+      return UserModel.fromFirestore(doc);
     } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? 'Erreur lors de la connexion');
+      throw Exception(_handleAuthError(e));
     }
   }
 
-  /// Enregistrement d’un nouvel utilisateur
+  /// 🔹 Inscription d'un nouvel utilisateur
   Future<UserModel> register(
     String name,
     String email,
@@ -59,46 +44,124 @@ class AuthService {
     UserRole role,
   ) async {
     try {
-      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      final user = userCredential.user;
-      if (user == null) {
-        throw Exception('Erreur lors de la création du compte');
-      }
+      await credential.user!.updateDisplayName(name);
 
-      await user.updateDisplayName(name);
-      await user.reload();
+      final user = UserModel(
+        id: credential.user!.uid,
+        name: name,
+        email: email,
+        role: role,
+        profileImage: null,
+        joinDate: DateTime.now(),
+      );
 
-      final userDocRef = _firestore.collection('users').doc(user.uid);
-
-      final userModelData = {
-        'id': user.uid.hashCode,
-        'name': name,
-        'email': email,
-        'role': role == UserRole.teacher ? 'teacher' : 'student',
-        'avatar': null,
-        'joinDate': DateTime.now().toIso8601String(),
-      };
-
-      await userDocRef.set(userModelData);
-
-      final updatedUser = _firebaseAuth.currentUser;
-      if (updatedUser == null) {
-        throw Exception('Erreur de mise à jour du profil');
-      }
-
-      final doc = await userDocRef.get();
-      return _userFromDocAndFirebaseUser(updatedUser, doc);
+      await _firestore.collection('users').doc(user.id).set(user.toFirestore());
+      return user;
     } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? 'Erreur lors de l\'inscription');
+      throw Exception(_handleAuthError(e));
     }
   }
 
-  /// Déconnexion
+  /// 🔹 Connexion Google pour mobile/desktop
+  Future<UserModel> signInWithGoogle(UserRole role) async {
+    try {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) throw Exception("Connexion Google annulée");
+
+      final googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user!;
+
+      return await _createOrGetUser(user, role);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// 🔹 Connexion Web (avec renderButton)
+  Future<UserModel> signInWithGoogleWeb(String idToken, UserRole role) async {
+    try {
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        idToken: idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user == null) {
+        throw FirebaseAuthException(code: 'user-not-found');
+      }
+
+      return await _createOrGetUser(user, role);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// 🔹 Déconnexion
   Future<void> logout() async {
-    await _firebaseAuth.signOut();
+    if (!kIsWeb) {
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {
+        // Ignore silently for non-Google signed users
+      }
+    }
+    await _auth.signOut();
+  }
+
+  /// 🔹 Crée ou récupère le profil utilisateur
+  Future<UserModel> _createOrGetUser(User user, UserRole role) async {
+    final userDoc = _firestore.collection('users').doc(user.uid);
+    final snapshot = await userDoc.get();
+
+    if (!snapshot.exists) {
+      final newUser = UserModel(
+        id: user.uid,
+        name: user.displayName ?? '',
+        email: user.email ?? '',
+        role: role,
+        profileImage: user.photoURL,
+        joinDate: DateTime.now(),
+      );
+      await userDoc.set(newUser.toFirestore());
+      return newUser;
+    } else {
+      final existingUser = UserModel.fromFirestore(snapshot);
+      if (existingUser.role != role.name) {
+        throw FirebaseAuthException(
+          code: "role-mismatch",
+          message: "Ce compte n'est pas associé à ce rôle.",
+        );
+      }
+      return existingUser;
+    }
+  }
+
+  /// 🔹 Gestion d'erreurs
+  String _handleAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+        return 'Email non trouvé';
+      case 'wrong-password':
+        return 'Mot de passe incorrect';
+      case 'email-already-in-use':
+        return 'Email déjà utilisé';
+      case 'role-mismatch':
+        return 'Ce compte est déjà associé à un autre rôle';
+      default:
+        return 'Erreur d\'authentification (${e.code})';
+    }
   }
 }

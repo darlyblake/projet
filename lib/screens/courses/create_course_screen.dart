@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' show File; // attention : ne fonctionne pas sur Web
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:edustore/providers/auth_provider.dart';
@@ -24,6 +25,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final _durationController = TextEditingController(text: '2h 30min');
   final _lessonsController = TextEditingController(text: '12');
 
+  PlatformFile? _selectedFileWeb; // Pour Flutter Web
   CourseFormat _selectedFormat = CourseFormat.pdf;
   CourseLevel _selectedLevel = CourseLevel.beginner;
   String _selectedCategory = 'Développement';
@@ -264,7 +266,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                             Text(
                               _selectedFile != null
                                   ? 'Fichier : ${_selectedFile!.path.split('/').last} (${(_selectedFile!.lengthSync() / (1024 * 1024)).toStringAsFixed(2)} Mo)'
-                                  : 'Cliquez pour sélectionner un fichier',
+                                  : (_selectedFileWeb != null
+                                      ? 'Fichier : ${_selectedFileWeb!.name} (${(_selectedFileWeb!.size / (1024 * 1024)).toStringAsFixed(2)} Mo)'
+                                      : 'Cliquez pour sélectionner un fichier'),
                               style: TextStyle(
                                   color: Colors.grey.shade600, fontSize: 14),
                             ),
@@ -298,7 +302,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           ? 'Publier le cours gratuit'
                           : 'Publier le cours payant',
                       icon: Icons.publish,
-                      onPressed: _createCourse,
+                      onPressed: () =>
+                          _createCourse(courseProvider, authProvider),
                       isLoading: courseProvider.isLoading,
                     ),
                     const SizedBox(height: 16),
@@ -349,10 +354,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   }
 
   Future<void> _pickFile() async {
-    if (![
-      _selectedFormat == CourseFormat.pdf,
-      _selectedFormat == CourseFormat.video
-    ].contains(true)) {
+    if (![CourseFormat.pdf, CourseFormat.video].contains(_selectedFormat)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text(
             'Veuillez sélectionner un format de cours valide avant de choisir un fichier'),
@@ -369,13 +371,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           _selectedFormat == CourseFormat.pdf ? ['pdf'] : ['mp4'],
     );
 
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
+    if (result != null && result.files.isNotEmpty) {
+      final pickedFile = result.files.first;
+
       final maxSizeInBytes = _selectedFormat == CourseFormat.pdf
           ? 50 * 1024 * 1024
           : 500 * 1024 * 1024;
 
-      if (file.lengthSync() > maxSizeInBytes) {
+      if (pickedFile.size > maxSizeInBytes) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
               'Le fichier dépasse la taille maximale autorisée (${_selectedFormat == CourseFormat.pdf ? '50MB' : '500MB'})'),
@@ -385,15 +388,22 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       }
 
       setState(() {
-        _selectedFile = file;
+        if (kIsWeb) {
+          _selectedFileWeb = pickedFile;
+          _selectedFile = null;
+        } else {
+          _selectedFile = File(pickedFile.path!);
+          _selectedFileWeb = null;
+        }
       });
     }
   }
 
-  Future<void> _createCourse() async {
+  Future<void> _createCourse(
+      CourseProvider courseProvider, AuthProvider authProvider) async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedFile == null) {
+    if (_selectedFile == null && _selectedFileWeb == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Veuillez sélectionner un fichier'),
         backgroundColor: Colors.red,
@@ -401,18 +411,19 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       return;
     }
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final courseProvider = Provider.of<CourseProvider>(context, listen: false);
+    // Pour l’upload, tu devras adapter ton CourseService.createCourse
+    // pour accepter soit File (mobile), soit PlatformFile.bytes (Web).
+    // Ici on envoie soit _selectedFile, soit _selectedFileWeb?.bytes
 
     final course = CourseModel(
-      id: 0,
+      id: '0', // si c’est un int, pas '0' en string
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
       price: _isFree ? 0 : double.parse(_priceController.text),
       currency: 'XAF',
       format: _selectedFormat,
       teacher: authProvider.currentUser?.name ?? '',
-      teacherId: authProvider.currentUser?.id ?? 0,
+      teacherId: authProvider.currentUser?.id ?? '',
       image: 'https://via.placeholder.com/300x200',
       students: 0,
       revenue: 0,
@@ -425,8 +436,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       isPublished: true,
     );
 
-    final success = await courseProvider.createCourse(course);
-    // TODO : Ajouter l'envoi de _selectedFile vers le backend si nécessaire
+    bool success;
+    if (kIsWeb) {
+      success = await courseProvider.createCourse(course,
+          fileBytes: _selectedFileWeb?.bytes);
+    } else {
+      success = await courseProvider.createCourse(course, file: _selectedFile);
+    }
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

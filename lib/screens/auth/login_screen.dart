@@ -1,16 +1,12 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:edustore/providers/auth_provider.dart';
 import 'package:edustore/models/user_model.dart';
-
-import 'package:edustore/widgets/common/custom_button.dart';
-import 'package:edustore/widgets/common/custom_text_field.dart';
-import 'package:edustore/widgets/common/loading_overlay.dart';
-
 import 'package:edustore/screens/dashboard/teacher_dashboard_screen.dart';
 import 'package:edustore/screens/dashboard/student_dashboard_screen.dart';
-import 'package:edustore/screens/auth/register_screen.dart';
+import 'package:edustore/widgets/common/init_google_signIn_button.dart';
+// important pour `registerViewFactory`
 
 class LoginScreen extends StatefulWidget {
   final UserRole userRole;
@@ -22,23 +18,70 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
   @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      initGoogleSignInButton(
+        onReceivedJwt: (jwt, role) async {
+          final authProvider =
+              Provider.of<AuthProvider>(context, listen: false);
+          final success = await authProvider.loginWithGoogleWebJwt(jwt, role);
+          if (success && context.mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => widget.userRole == UserRole.teacher
+                    ? const TeacherDashboardScreen()
+                    : const StudentDashboardScreen(),
+              ),
+            );
+          }
+        },
+      );
+    }
+  }
+
+  Future<void> _handleGoogleLogin(BuildContext context) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    if (kIsWeb) {
+      // Sur web, on invite à utiliser le bouton natif
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Veuillez utiliser le bouton Google affiché ci-dessous pour vous connecter.'),
+        ),
+      );
+      return;
+    }
+
+    final success = await authProvider.loginWithGoogle(widget.userRole);
+
+    if (success && context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => widget.userRole == UserRole.teacher
+              ? const TeacherDashboardScreen()
+              : const StudentDashboardScreen(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(authProvider.errorMessage ?? 'Erreur de connexion Google'),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isLargeScreen = width > 600;
-    final horizontalPadding = isLargeScreen ? 64.0 : 24.0;
-    final badgeFontSize = isLargeScreen ? 20.0 : 16.0;
+    final badge = widget.userRole == UserRole.teacher
+        ? 'Espace Professeur'
+        : 'Espace Étudiant';
 
     return Scaffold(
       appBar: AppBar(
@@ -46,156 +89,61 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
-          return LoadingOverlay(
-            isLoading: authProvider.isLoading,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding, vertical: 24.0),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 32),
-
-                        // Badge de rôle
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              widget.userRole == UserRole.teacher
-                                  ? 'Espace Professeur'
-                                  : 'Espace Étudiant',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: badgeFontSize,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Formulaire
-                        CustomTextField(
-                          controller: _emailController,
-                          label: 'Email',
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez saisir votre email';
-                            }
-                            if (!value.contains('@')) {
-                              return 'Email invalide';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        CustomTextField(
-                          controller: _passwordController,
-                          label: 'Mot de passe',
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez saisir votre mot de passe';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Message d'erreur
-                        if (authProvider.errorMessage != null)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.red.shade200),
-                            ),
-                            child: Text(
-                              authProvider.errorMessage!,
-                              style: TextStyle(color: Colors.red.shade700),
-                            ),
-                          ),
-
-                        // Bouton de connexion
-                        CustomButton(
-                          text: 'Se connecter',
-                          onPressed: _handleLogin,
-                          isLoading: authProvider.isLoading,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Lien vers inscription
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('Pas encore de compte ? '),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => RegisterScreen(
-                                      userRole: widget.userRole,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: const Text('S\'inscrire'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
                   ),
                 ),
               ),
-            ),
-          );
-        },
+              const SizedBox(height: 48),
+
+              // 🔽 Le bouton Flutter (mobile + fallback)
+              ElevatedButton.icon(
+                onPressed: () => _handleGoogleLogin(context),
+                icon: const Icon(Icons.login),
+                label: const Text('Connexion avec Google'),
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black87,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // 🔽 Le bouton natif Google (affiché uniquement sur Web)
+              if (kIsWeb)
+                const SizedBox(
+                  height: 60,
+                  width: 300,
+                  child: HtmlElementView(
+                    viewType: 'google-sign-in-button',
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
-  }
-
-  Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    final success = await authProvider.login(
-      _emailController.text.trim(),
-      _passwordController.text,
-      widget.userRole,
-    );
-
-    if (success && mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => widget.userRole == UserRole.teacher
-              ? const TeacherDashboardScreen()
-              : const StudentDashboardScreen(),
-        ),
-        (route) => false,
-      );
-    }
   }
 }

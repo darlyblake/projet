@@ -3,14 +3,14 @@ enum CourseFormat { pdf, video }
 enum CourseLevel { beginner, intermediate, advanced }
 
 class CourseModel {
-  final int id;
+  final String id; // <- changé en String
   final String title;
   final String description;
   final double? price;
   final String currency;
   final CourseFormat format;
   final String teacher;
-  final int teacherId;
+  final String teacherId;
   final String image;
   final int students;
   final double revenue;
@@ -28,7 +28,7 @@ class CourseModel {
     required this.id,
     required this.title,
     required this.description,
-    this.price, // Nullable pour les cours gratuits
+    this.price,
     required this.currency,
     required this.format,
     required this.teacher,
@@ -49,16 +49,14 @@ class CourseModel {
 
   factory CourseModel.fromJson(Map<String, dynamic> json) {
     return CourseModel(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '', // id en string
       title: json['title'] ?? '',
       description: json['description'] ?? '',
-      price: json['price']?.toDouble(), // Nullable
+      price: json['price']?.toDouble(),
       currency: json['currency'] ?? 'XAF',
       format: json['format'] == 'video' ? CourseFormat.video : CourseFormat.pdf,
-      teacher: json['teacher'] ??
-          json['instructor'] ??
-          '', // Support des deux champs
-      teacherId: json['teacherId'] ?? 0,
+      teacher: json['teacher'] ?? json['instructor'] ?? '',
+      teacherId: json['teacherId']?.toString() ?? '',
       image: json['image'] ?? 'https://via.placeholder.com/300x200',
       students: json['students'] ?? 0,
       revenue: (json['revenue'] ?? 0).toDouble(),
@@ -97,11 +95,11 @@ class CourseModel {
       'id': id,
       'title': title,
       'description': description,
-      'price': price, // Peut être null pour les cours gratuits
+      'price': price,
       'currency': currency,
       'format': format == CourseFormat.video ? 'video' : 'pdf',
       'teacher': teacher,
-      'instructor': teacher, // Compatibilité
+      'instructor': teacher,
       'teacherId': teacherId,
       'image': image,
       'students': students,
@@ -118,20 +116,12 @@ class CourseModel {
     };
   }
 
-  // Getters pour les cours gratuits
   bool get isFree => price == null || price == 0;
 
-  String get priceDisplay {
-    if (isFree) {
-      return 'GRATUIT';
-    }
-    return '${price!.toInt()} $currency';
-  }
+  String get priceDisplay => isFree ? 'GRATUIT' : '${price!.toInt()} $currency';
 
-  // Getter pour l'instructeur (compatibilité)
   String get instructor => teacher;
 
-  // Méthodes utilitaires
   String get levelText {
     switch (level) {
       case CourseLevel.beginner:
@@ -152,16 +142,15 @@ class CourseModel {
     }
   }
 
-  // Méthode pour créer une copie avec modifications
   CourseModel copyWith({
-    int? id,
+    String? id,
     String? title,
     String? description,
     double? price,
     String? currency,
     CourseFormat? format,
     String? teacher,
-    int? teacherId,
+    String? teacherId,
     String? image,
     int? students,
     double? revenue,
@@ -199,47 +188,35 @@ class CourseModel {
     );
   }
 
-  // Méthode pour vérifier si le cours est accessible
-  bool get isAccessible {
-    return isPublished && (isFree || progress > 0);
-  }
+  bool get isAccessible => isPublished && (isFree || progress > 0);
 
-  // Méthode pour obtenir le statut du cours
   String get statusText {
     if (!isPublished) return 'Brouillon';
     if (isFree) return 'Gratuit';
     return 'Payant';
   }
 
-  // Méthode pour formater la durée
-  String get formattedDuration {
-    if (duration.isEmpty) return 'Durée non spécifiée';
-    return duration;
-  }
+  String get formattedDuration =>
+      duration.isEmpty ? 'Durée non spécifiée' : duration;
 
-  // Méthode pour formater le nombre d'étudiants
   String get studentsText {
     if (students == 0) return 'Aucun étudiant';
     if (students == 1) return '1 étudiant';
     return '$students étudiants';
   }
 
-  // Méthode pour formater le rating
   String get ratingText {
     if (rating == 0) return 'Pas encore noté';
     return '${rating.toStringAsFixed(1)}/5';
   }
 
   @override
-  String toString() {
-    return 'CourseModel(id: $id, title: $title, price: $price, isFree: $isFree)';
-  }
+  String toString() =>
+      'CourseModel(id: $id, title: $title, price: $price, isFree: $isFree)';
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is CourseModel && other.id == id;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is CourseModel && other.id == id);
 
   @override
   int get hashCode => id.hashCode;
